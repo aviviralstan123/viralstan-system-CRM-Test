@@ -11,6 +11,7 @@ import {
   CreditCard,
   Settings,
   Briefcase,
+  Building2,
   ChevronLeft,
   ChevronRight,
   Search,
