@@ -34,7 +34,7 @@ export default function ServicesPage() {
       description: service.description,
       price: service.price,
       category: service.category,
-      status: service.status,
+      status: service.status as "active" | "inactive",
       clients: service.clients,
       metaTitle: service.metaTitle,
       metaDescription: service.metaDescription,
