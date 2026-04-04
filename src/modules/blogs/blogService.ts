@@ -1,29 +1,34 @@
 import apiClient from '@/services/apiClient';
-import { Blog } from '@/lib/mock-data';
+import { Blog } from '@/services/blogService';
 
 export const blogService = {
   getAll: async () => {
-    // In a real app: return apiClient.get<Blog[]>('/blogs');
-    return null; // Using local store for now
+    const response = await apiClient.get('/blogs');
+    return response.data.data;
   },
   
   getById: async (id: string) => {
-    // return apiClient.get<Blog>(`/blogs/${id}`);
-    return null;
+    const response = await apiClient.get(`/blogs/${id}`);
+    return response.data.data;
+  },
+
+  getBySlug: async (slug: string) => {
+    const response = await apiClient.get(`/blogs/${slug}`);
+    return response.data.data;
   },
   
-  create: async (blog: Omit<Blog, 'id'>) => {
-    // return apiClient.post<Blog>('/blogs', blog);
-    return null;
+  create: async (blog: Partial<Blog>) => {
+    const response = await apiClient.post('/blogs', blog);
+    return response.data.data;
   },
   
   update: async (id: string, blog: Partial<Blog>) => {
-    // return apiClient.put<Blog>(`/blogs/${id}`, blog);
-    return null;
+    const response = await apiClient.put(`/blogs/${id}`, blog);
+    return response.data.data;
   },
   
   delete: async (id: string) => {
-    // return apiClient.delete(`/blogs/${id}`);
-    return null;
+    const response = await apiClient.delete(`/blogs/${id}`);
+    return response.data;
   }
 };

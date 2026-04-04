@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge, getInvoiceStatusVariant } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { clients as initialClients, Client } from "@/lib/mock-data";
-import { Plus, Pencil, Trash2, Search, Mail } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Mail, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import * as clientService from "@/services/clientService";
+import { Client } from "@/services/clientService";
 
 const emptyClient: Omit<Client, "id"> = {
   name: "", 
@@ -18,13 +19,30 @@ const emptyClient: Omit<Client, "id"> = {
 };
 
 export default function ClientsList() {
-  const [clientList, setClientList] = useState<Client[]>(initialClients);
+  const [clientList, setClientList] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Client | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(emptyClient);
   const [search, setSearch] = useState("");
 
-  const filtered = clientList.filter(c => 
+  const fetchClients = async () => {
+    try {
+      setLoading(true);
+      const res = await clientService.getAllClients();
+      setClientList(res.data || []);
+    } catch (error) {
+      toast.error("Failed to fetch clients");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchClients();
+  }, []);
+
+  const filtered = (clientList || []).filter(c => 
     c.name.toLowerCase().includes(search.toLowerCase()) || 
     c.company.toLowerCase().includes(search.toLowerCase())
   );
@@ -49,24 +67,35 @@ export default function ClientsList() {
     setForm(emptyClient); 
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name.trim() || !form.email.trim()) { 
       toast.error("Name and email are required"); 
       return; 
     }
-    if (editing) {
-      setClientList(prev => prev.map(c => c.id === editing.id ? { ...c, ...form } : c));
-      toast.success("Client updated");
-    } else {
-      setClientList(prev => [...prev, { id: String(Date.now()), ...form }]);
-      toast.success("Client added");
+    try {
+      if (editing) {
+        await clientService.updateClient(editing.id, form);
+        toast.success("Client updated");
+      } else {
+        await clientService.createClient(form);
+        toast.success("Client added");
+      }
+      fetchClients();
+      handleCancel();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to save client");
     }
-    handleCancel();
   };
 
-  const handleDelete = (id: string) => { 
-    setClientList(prev => prev.filter(c => c.id !== id)); 
-    toast.success("Client deleted"); 
+  const handleDelete = async (id: string) => { 
+    if (!confirm("Are you sure you want to delete this client?")) return;
+    try {
+      await clientService.deleteClient(id);
+      toast.success("Client deleted");
+      fetchClients();
+    } catch (error) {
+      toast.error("Failed to delete client");
+    }
   };
 
   const showForm = creating || editing;
@@ -145,35 +174,47 @@ export default function ClientsList() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(client => (
-              <tr key={client.id} className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full gradient-primary flex items-center justify-center shrink-0">
-                      <span className="text-xs font-semibold text-primary-foreground">{client.name[0]}</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">{client.name}</p>
-                      <p className="text-xs text-muted-foreground">{client.company}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3"><span className="text-sm text-muted-foreground flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" />{client.email}</span></td>
-                <td className="px-4 py-3"><StatusBadge label={client.status} variant={getInvoiceStatusVariant(client.status)} /></td>
-                <td className="px-4 py-3"><span className="text-sm font-semibold">${client.totalSpent.toLocaleString()}</span></td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => handleEdit(client)} className="h-8 w-8 text-primary hover:bg-primary/10">
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(client.id)} className="h-8 w-8 text-destructive hover:bg-destructive/10">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+            {loading ? (
+              <tr>
+                <td colSpan={5} className="px-4 py-8 text-center">
+                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading clients...
                   </div>
                 </td>
               </tr>
-            ))}
-            {filtered.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">No clients found</td></tr>}
+            ) : filtered.length > 0 ? (
+              filtered.map(client => (
+                <tr key={client.id} className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full gradient-primary flex items-center justify-center shrink-0">
+                        <span className="text-xs font-semibold text-primary-foreground">{client.name[0]}</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{client.name}</p>
+                        <p className="text-xs text-muted-foreground">{client.company}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3"><span className="text-sm text-muted-foreground flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" />{client.email}</span></td>
+                  <td className="px-4 py-3"><StatusBadge label={client.status} variant={getInvoiceStatusVariant(client.status)} /></td>
+                  <td className="px-4 py-3"><span className="text-sm font-semibold">${(client.totalSpent || 0).toLocaleString()}</span></td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(client)} className="h-8 w-8 text-primary hover:bg-primary/10">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(client.id)} className="h-8 w-8 text-destructive hover:bg-destructive/10">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">No clients found</td></tr>
+            )}
           </tbody>
         </table>
       </div>

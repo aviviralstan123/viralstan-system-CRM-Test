@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge, getInvoiceStatusVariant } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { leads as initialLeads, Lead } from "@/lib/mock-data";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import * as leadService from "@/services/leadService";
+import { Lead } from "@/services/leadService";
 
 const emptyLead: Omit<Lead, "id"> = {
   name: "", 
@@ -14,19 +15,36 @@ const emptyLead: Omit<Lead, "id"> = {
   source: "Website", 
   status: "new", 
   value: 0, 
-  createdAt: new Date().toISOString().split("T")[0],
+  created_at: new Date().toISOString(),
 };
 
 export default function LeadsList() {
-  const [leadList, setLeadList] = useState<Lead[]>(initialLeads);
+  const [leadList, setLeadList] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Lead | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(emptyLead);
   const [search, setSearch] = useState("");
 
-  const filtered = leadList.filter(l => 
+  const fetchLeads = async () => {
+    try {
+      setLoading(true);
+      const res = await leadService.getAllLeads();
+      setLeadList(res.data || []);
+    } catch (error) {
+      toast.error("Failed to fetch leads");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLeads();
+  }, []);
+
+  const filtered = (leadList || []).filter(l => 
     l.name.toLowerCase().includes(search.toLowerCase()) || 
-    l.company.toLowerCase().includes(search.toLowerCase())
+    (l.company && l.company.toLowerCase().includes(search.toLowerCase()))
   );
 
   const handleEdit = (lead: Lead) => {
@@ -49,24 +67,35 @@ export default function LeadsList() {
     setForm(emptyLead); 
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name.trim()) { 
       toast.error("Name is required"); 
       return; 
     }
-    if (editing) {
-      setLeadList(prev => prev.map(l => l.id === editing.id ? { ...l, ...form } : l));
-      toast.success("Lead updated");
-    } else {
-      setLeadList(prev => [...prev, { id: String(Date.now()), ...form }]);
-      toast.success("Lead added");
+    try {
+      if (editing) {
+        await leadService.updateLead(editing.id, form);
+        toast.success("Lead updated");
+      } else {
+        await leadService.createLead(form);
+        toast.success("Lead added");
+      }
+      fetchLeads();
+      handleCancel();
+    } catch (error) {
+      toast.error("Failed to save lead");
     }
-    handleCancel();
   };
 
-  const handleDelete = (id: string) => { 
-    setLeadList(prev => prev.filter(l => l.id !== id)); 
-    toast.success("Lead deleted"); 
+  const handleDelete = async (id: string) => { 
+    if (!confirm("Are you sure?")) return;
+    try {
+      await leadService.deleteLead(id);
+      toast.success("Lead deleted");
+      fetchLeads();
+    } catch (error) {
+      toast.error("Failed to delete lead");
+    }
   };
 
   const showForm = creating || editing;
@@ -163,33 +192,45 @@ export default function LeadsList() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(lead => (
-              <tr 
-                key={lead.id} 
-                className="border-b border-border last:border-0 hover:bg-primary/[0.02] transition-all duration-200 group/row"
-              >
-                <td className="px-4 py-3">
-                  <div>
-                    <p className="text-sm font-medium">{lead.name}</p>
-                    <p className="text-xs text-muted-foreground">{lead.company}</p>
-                  </div>
-                </td>
-                <td className="px-4 py-3"><span className="text-sm">{lead.source}</span></td>
-                <td className="px-4 py-3"><StatusBadge label={lead.status} variant={getInvoiceStatusVariant(lead.status)} /></td>
-                <td className="px-4 py-3"><span className="text-sm font-semibold">${lead.value.toLocaleString()}</span></td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => handleEdit(lead)} className="h-8 w-8 text-primary hover:bg-primary/10">
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(lead.id)} className="h-8 w-8 text-destructive hover:bg-destructive/10">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+            {loading ? (
+              <tr>
+                <td colSpan={5} className="px-4 py-8 text-center">
+                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading leads...
                   </div>
                 </td>
               </tr>
-            ))}
-            {filtered.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">No leads found</td></tr>}
+            ) : filtered.length > 0 ? (
+              filtered.map(lead => (
+                <tr 
+                  key={lead.id} 
+                  className="border-b border-border last:border-0 hover:bg-primary/[0.02] transition-all duration-200 group/row"
+                >
+                  <td className="px-4 py-3">
+                    <div>
+                      <p className="text-sm font-medium">{lead.name}</p>
+                      <p className="text-xs text-muted-foreground">{lead.company}</p>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3"><span className="text-sm">{lead.source}</span></td>
+                  <td className="px-4 py-3"><StatusBadge label={lead.status} variant={getInvoiceStatusVariant(lead.status)} /></td>
+                  <td className="px-4 py-3"><span className="text-sm font-semibold">${(lead.value || 0).toLocaleString()}</span></td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(lead)} className="h-8 w-8 text-primary hover:bg-primary/10">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(lead.id)} className="h-8 w-8 text-destructive hover:bg-destructive/10">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">No leads found</td></tr>
+            )}
           </tbody>
         </table>
       </div>

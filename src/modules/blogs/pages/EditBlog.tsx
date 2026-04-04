@@ -12,7 +12,7 @@ import { RichTextEditor } from "../components/RichTextEditor";
 import { ArrowLeft, Save, Upload, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { Blog } from "@/lib/mock-data";
+import { Blog } from "@/services/blogService";
 
 export default function EditBlog() {
   const { id } = useParams();
@@ -22,14 +22,38 @@ export default function EditBlog() {
   const [blog, setBlog] = useState<Blog | null>(null);
 
   useEffect(() => {
-    const existingBlog = getBlogById(id || "");
-    if (existingBlog) {
-      setBlog(existingBlog);
-      setCoverPreview(existingBlog.coverImage || "");
-    } else {
-      toast.error("Blog post not found");
-      navigate("/blogs");
-    }
+    const loadBlog = async () => {
+      setLoading(true);
+      try {
+        const existingBlog = getBlogById(id || "");
+        if (existingBlog) {
+          setBlog(existingBlog);
+          setCoverPreview(existingBlog.coverImage || existingBlog.featured_image || "");
+        } else {
+          // If not in store, fetch from API
+          const fetchedBlog = await blogService.getById(id || "");
+          if (fetchedBlog) {
+            setBlog({
+              ...fetchedBlog,
+              name: fetchedBlog.title,
+              description: fetchedBlog.content,
+              coverImage: fetchedBlog.featured_image
+            });
+            setCoverPreview(fetchedBlog.featured_image || "");
+          } else {
+            toast.error("Blog post not found");
+            navigate("/blogs");
+          }
+        }
+      } catch (error) {
+        toast.error("Error loading blog post");
+        navigate("/blogs");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadBlog();
   }, [id, getBlogById, navigate]);
 
   const [coverPreview, setCoverPreview] = useState<string>("");
@@ -59,7 +83,7 @@ export default function EditBlog() {
 
     setLoading(true);
     try {
-      updateBlog(id!, {
+      await updateBlog(id!, {
         ...blog,
         wordCount,
       });

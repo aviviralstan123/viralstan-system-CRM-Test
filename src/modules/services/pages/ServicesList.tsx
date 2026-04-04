@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { DataTable, Column } from "@/components/ui/data-table";
 import { StatusBadge, getInvoiceStatusVariant } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { services as initialServices, Service } from "@/lib/mock-data";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Service } from "@/lib/mock-data";
+import { getAllServices, createService, updateService, deleteService } from "@/services/serviceService";
+import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 const emptyService: Omit<Service, "id"> = {
@@ -21,10 +22,36 @@ const emptyService: Omit<Service, "id"> = {
 };
 
 export default function ServicesList() {
-  const [serviceList, setServiceList] = useState<Service[]>(initialServices);
+  const [serviceList, setServiceList] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
   const [editing, setEditing] = useState<Service | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(emptyService);
+
+  const fetchServicesData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await getAllServices();
+      // Map title to name for the table to work without much refactoring
+      const mapped = (res.data || []).map((s: any) => ({
+        ...s,
+        name: s.title,
+        status: s.is_active ? 'active' : 'inactive',
+        metaTitle: s.meta_title,
+        metaDescription: s.meta_description
+      }));
+      setServiceList(mapped);
+    } catch (error) {
+      toast.error("Failed to load services");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchServicesData();
+  }, [fetchServicesData]);
 
   const handleEdit = (service: Service) => {
     setEditing(service);
@@ -35,9 +62,9 @@ export default function ServicesList() {
       price: service.price,
       category: service.category,
       status: service.status as "active" | "inactive",
-      clients: service.clients,
-      metaTitle: service.metaTitle,
-      metaDescription: service.metaDescription,
+      clients: service.clients || 0,
+      metaTitle: service.metaTitle || "",
+      metaDescription: service.metaDescription || "",
     });
   };
 
@@ -53,30 +80,49 @@ export default function ServicesList() {
     setForm(emptyService);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name.trim()) {
       toast.error("Title is required");
       return;
     }
-    if (editing) {
-      setServiceList((prev) =>
-        prev.map((s) => (s.id === editing.id ? { ...s, ...form } : s))
-      );
-      toast.success("Service updated");
-    } else {
-      const newService: Service = {
-        id: String(Date.now()),
-        ...form,
-      };
-      setServiceList((prev) => [...prev, newService]);
-      toast.success("Service created");
+    
+    setActionLoading(true);
+    try {
+      if (editing) {
+        await updateService(editing.id, {
+          title: form.name,
+          ...form
+        } as any);
+        toast.success("Service updated");
+      } else {
+        await createService({
+          title: form.name,
+          ...form
+        } as any);
+        toast.success("Service created");
+      }
+      fetchServicesData();
+      handleCancel();
+    } catch (error) {
+      toast.error(editing ? "Failed to update service" : "Failed to create service");
+    } finally {
+      setActionLoading(false);
     }
-    handleCancel();
   };
 
-  const handleDelete = (id: string) => {
-    setServiceList((prev) => prev.filter((s) => s.id !== id));
-    toast.success("Service deleted");
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this service?")) return;
+    
+    setActionLoading(true);
+    try {
+      await deleteService(id);
+      toast.success("Service deleted");
+      fetchServicesData();
+    } catch (error) {
+      toast.error("Failed to delete service");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const showForm = creating || editing;
@@ -103,6 +149,7 @@ export default function ServicesList() {
             size="icon" 
             onClick={() => handleEdit(row)} 
             className="h-8 w-8 text-primary hover:bg-primary/10"
+            disabled={actionLoading}
           >
             <Pencil className="h-4 w-4" />
           </Button>
@@ -111,6 +158,7 @@ export default function ServicesList() {
             size="icon" 
             onClick={() => handleDelete(row.id)} 
             className="h-8 w-8 text-destructive hover:bg-destructive/10"
+            disabled={actionLoading}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -127,8 +175,14 @@ export default function ServicesList() {
       />
 
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-muted-foreground">{serviceList.length} services available</p>
-        <Button className="gradient-primary text-primary-foreground border-0" onClick={handleCreate}>
+        <p className="text-sm text-muted-foreground">
+          {loading ? "Loading services..." : `${serviceList.length} services available`}
+        </p>
+        <Button 
+          className="gradient-primary text-primary-foreground border-0" 
+          onClick={handleCreate}
+          disabled={loading || actionLoading}
+        >
           <Plus className="h-4 w-4 mr-1.5" /> Add Service
         </Button>
       </div>
@@ -184,16 +238,34 @@ export default function ServicesList() {
           </div>
 
           <div className="flex gap-3 pt-2">
-            <Button className="gradient-primary text-primary-foreground border-0" onClick={handleSave}>
-              {editing ? "Update Service" : "Create Service"}
+            <Button 
+              className="gradient-primary text-primary-foreground border-0" 
+              onClick={handleSave}
+              disabled={actionLoading}
+            >
+              {actionLoading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Saving...</span>
+                </div>
+              ) : (
+                editing ? "Update Service" : "Create Service"
+              )}
             </Button>
-            <Button variant="outline" onClick={handleCancel}>Cancel</Button>
+            <Button variant="outline" onClick={handleCancel} disabled={actionLoading}>Cancel</Button>
           </div>
         </div>
       )}
 
       <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
-        <DataTable columns={columns} data={serviceList} searchKey="name" searchPlaceholder="Search services..." />
+        {loading ? (
+             <div className="p-20 flex flex-col items-center justify-center gap-4">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                <p className="text-muted-foreground animate-pulse">Loading services from database...</p>
+             </div>
+        ) : (
+            <DataTable columns={columns} data={serviceList} searchKey="name" searchPlaceholder="Search services..." />
+        )}
       </div>
     </div>
   );

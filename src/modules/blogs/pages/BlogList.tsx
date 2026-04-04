@@ -1,27 +1,44 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useBlogStore } from "../blogStore";
-import { Plus, Pencil, Trash2, FileText, Search, ExternalLink } from "lucide-react";
+import { Plus, Pencil, Trash2, FileText, Search, ExternalLink, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function BlogList() {
   const navigate = useNavigate();
-  const { blogs, deleteBlog } = useBlogStore();
+  const { blogs, fetchBlogs, deleteBlog, isLoading } = useBlogStore();
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    fetchBlogs();
+  }, [fetchBlogs]);
 
   const filtered = blogs.filter((b) =>
     b.title.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm("Are you sure you want to delete this blog post?")) {
-      deleteBlog(id);
-      toast.success("Blog post deleted");
+      try {
+        await deleteBlog(id);
+        toast.success("Blog post deleted");
+      } catch (error) {
+        toast.error("Failed to delete blog post");
+      }
     }
   };
+
+  if (isLoading && blogs.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground animate-pulse">Loading blog posts...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in">
@@ -81,9 +98,9 @@ export default function BlogList() {
                 className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors"
               >
                 <td className="px-4 py-3">
-                  {blog.coverImage ? (
+                  {blog.coverImage || blog.featured_image ? (
                     <img
-                      src={blog.coverImage}
+                      src={blog.coverImage || blog.featured_image || ""}
                       alt={blog.title}
                       className="h-10 w-10 rounded-lg object-cover"
                     />
@@ -110,7 +127,7 @@ export default function BlogList() {
                 </td>
                 <td className="px-4 py-3">
                   <span className="text-sm text-muted-foreground">
-                    {blog.wordCount} words
+                    {blog.wordCount || blog.word_count || 0} words
                   </span>
                 </td>
                 <td className="px-4 py-3">
@@ -152,7 +169,7 @@ export default function BlogList() {
                 </td>
               </tr>
             ))}
-            {filtered.length === 0 && (
+            {filtered.length === 0 && !isLoading && (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
                   No blog posts found. <Link to="/blogs/create" className="text-primary hover:underline">Create one now</Link>

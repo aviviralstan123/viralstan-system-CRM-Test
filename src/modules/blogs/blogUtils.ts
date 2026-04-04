@@ -9,10 +9,10 @@ export const generateSlug = (text: string): string => {
 
 export const calculateReadingTime = (text: string): number => {
   const wordsPerMinute = 200;
-  const wordCount = text.split(/\s+/).filter(Boolean).length;
+  const wordCount = (text || '').split(/\s+/).filter(Boolean).length;
   return Math.ceil(wordCount / wordsPerMinute);
 };
 
 export const calculateWordCount = (text: string): number => {
-  return text.split(/\s+/).filter(Boolean).length;
+  return (text || '').split(/\s+/).filter(Boolean).length;
 };

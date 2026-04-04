@@ -61,7 +61,7 @@ export default function CreateBlog() {
 
     setLoading(true);
     try {
-      addBlog({
+      await addBlog({
         ...form,
         wordCount,
       });

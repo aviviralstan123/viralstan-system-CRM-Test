@@ -6,8 +6,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Loader2 } from "lucide-react";
+import * as authService from "@/services/authService";
 
 // Lazy load modules
+const LoginPage = lazy(() => import("@/modules/auth/pages/LoginPage"));
 const DashboardPage = lazy(() => import("@/modules/dashboard/pages/DashboardPage"));
 const ClientsList = lazy(() => import("@/modules/clients/pages/ClientsList"));
 const LeadsList = lazy(() => import("@/modules/leads/pages/LeadsList"));
@@ -41,7 +43,19 @@ const App = () => (
       <BrowserRouter>
         <Suspense fallback={<PageLoader />}>
           <Routes>
-            <Route path="/" element={<DashboardLayout />}>
+            {/* Auth Routes */}
+            <Route path="/login" element={<LoginPage />} />
+            
+            <Route 
+              path="/" 
+              element={
+                authService.isAuthenticated() ? (
+                  <DashboardLayout />
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              }
+            >
               <Route index element={<DashboardPage />} />
               
               {/* Clients Module */}

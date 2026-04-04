@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import * as userService from "@/services/userService";
+import { User as UserType } from "@/services/userService";
 import {
   Dialog,
   DialogContent,
@@ -28,7 +30,7 @@ import {
 import { 
   User, Lock, Palette, Globe, Users, Bell, 
   Settings2, Link2, AlertTriangle, Upload, Trash2, ShieldCheck,
-  Mail, Phone, Camera, CheckCircle2, XCircle, Plus
+  Mail, Phone, Camera, CheckCircle2, XCircle, Plus, Loader2
 } from "lucide-react";
 
 export default function SettingsPage() {
@@ -84,30 +86,58 @@ export default function SettingsPage() {
   const profileInputRef = useRef<HTMLInputElement>(null);
 
   // --- Users & Roles State ---
-  const [users, setUsers] = useState([
-    { id: 1, name: "Admin User", email: "admin@viralstan.com", role: "Super Admin" },
-    { id: 2, name: "Sarah Chen", email: "sarah@viralstan.com", role: "Editor" },
-    { id: 3, name: "Alex Thompson", email: "alex@viralstan.com", role: "Viewer" },
-  ]);
-
-  const [newUser, setNewUser] = useState({ name: "", email: "", role: "Viewer" });
+  const [users, setUsers] = useState<User[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [newUser, setNewUser] = useState({ name: "", email: "", role: "viewer" });
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
 
-  const handleAddUser = () => {
+  const fetchUsers = async () => {
+    try {
+      setLoadingUsers(true);
+      const res = await userService.getAllUsers();
+      setUsers(res.data || []);
+    } catch (error) {
+      toast.error("Failed to fetch users");
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const handleAddUser = async () => {
     if (!newUser.name || !newUser.email) {
       toast.error("Please fill in all fields");
       return;
     }
-    const id = users.length + 1;
-    setUsers([...users, { id, ...newUser }]);
-    setNewUser({ name: "", email: "", role: "Viewer" });
-    setIsUserModalOpen(false);
-    toast.success("User added successfully");
+    try {
+      // Map frontend roles to backend roles
+      const backendRole = newUser.role.toLowerCase().replace(" ", "");
+      await userService.createUser({ 
+        name: newUser.name, 
+        email: newUser.email, 
+        role: backendRole === "superadmin" ? "admin" : backendRole 
+      });
+      fetchUsers();
+      setNewUser({ name: "", email: "", role: "viewer" });
+      setIsUserModalOpen(false);
+      toast.success("User added successfully");
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to add user");
+    }
   };
 
-  const handleDeleteUser = (id: number) => {
-    setUsers(users.filter(u => u.id !== id));
-    toast.success("User removed successfully");
+  const handleDeleteUser = async (id: number) => {
+    if (!confirm("Remove this user?")) return;
+    try {
+      await userService.deleteUser(id);
+      toast.success("User removed successfully");
+      fetchUsers();
+    } catch (error) {
+      toast.error("Failed to remove user");
+    }
   };
 
   // --- File Upload Logic ---
@@ -510,24 +540,35 @@ export default function SettingsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {users.map(user => (
-                      <tr key={user.id} className="border-b border-border/30 last:border-0 hover:bg-muted/20 transition-colors">
-                        <td className="px-4 py-4 font-bold">{user.name}</td>
-                        <td className="px-4 py-4 text-muted-foreground">{user.email}</td>
-                        <td className="px-4 py-4">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                            user.role === 'Super Admin' ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-muted text-muted-foreground'
-                          }`}>
-                            {user.role}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 text-right">
-                          <Button variant="ghost" size="icon" onClick={() => handleDeleteUser(user.id)} className="h-8 w-8 text-destructive hover:bg-destructive/10">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                    {loadingUsers ? (
+                      <tr>
+                        <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />
+                          Loading users...
                         </td>
                       </tr>
-                    ))}
+                    ) : users.length > 0 ? (
+                      users.map(user => (
+                        <tr key={user.id} className="border-b border-border/30 last:border-0 hover:bg-muted/20 transition-colors">
+                          <td className="px-4 py-4 font-bold">{user.name}</td>
+                          <td className="px-4 py-4 text-muted-foreground">{user.email}</td>
+                          <td className="px-4 py-4">
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                              user.role === 'admin' ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-muted text-muted-foreground'
+                            }`}>
+                              {user.role}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4 text-right">
+                            <Button variant="ghost" size="icon" onClick={() => handleDeleteUser(user.id)} className="h-8 w-8 text-destructive hover:bg-destructive/10">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">No users found</td></tr>
+                    )}
                   </tbody>
                 </table>
               </div>
