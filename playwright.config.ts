@@ -8,6 +8,3 @@ export default createLovableConfig({
   //   baseURL: 'http://localhost:3000',
   // },
 });
-//  hello
-
-//  hello this is immportent folder
