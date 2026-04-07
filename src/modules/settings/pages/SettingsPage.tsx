@@ -11,6 +11,9 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import * as userService from "@/services/userService";
 import { User as UserType } from "@/services/userService";
+import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "@/store/authStore";
+import * as settingsService from "@/services/settingsService";
 import {
   Dialog,
   DialogContent,
@@ -34,6 +37,11 @@ import {
 } from "lucide-react";
 
 export default function SettingsPage() {
+  const navigate = useNavigate();
+  const { logout } = useAuthStore();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(false);
+
   // --- State for various sections ---
   const [profile, setProfile] = useState({
     name: "Admin User",
@@ -103,9 +111,73 @@ export default function SettingsPage() {
     }
   };
 
+  const fetchSettings = async () => {
+    try {
+      setIsLoadingSettings(true);
+      const res = await settingsService.getSettings();
+      const data = res.data?.data;
+      if (data) {
+        setProfile((p: any) => ({
+          ...p,
+          name: data.siteName || p.name,
+          email: data.email || p.email
+        }));
+        setBranding((b: any) => ({
+          ...b,
+          logo: data.logo || b.logo,
+          primaryColor: data.primaryColor || b.primaryColor,
+          secondaryColor: data.secondaryColor || b.secondaryColor
+        }));
+        setSeo((s: any) => ({
+          ...s,
+          metaTitle: data.metaTitle || s.metaTitle,
+          metaDescription: data.metaDescription || s.metaDescription
+        }));
+        setPreferences((p: any) => ({
+          ...p,
+          currency: data.currency || p.currency,
+          timezone: data.timezone || p.timezone
+        }));
+      }
+    } catch (error) {
+      toast.error("Failed to load settings");
+    } finally {
+      setIsLoadingSettings(false);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchSettings();
   }, []);
+
+  const handleSaveSettings = async (section: string) => {
+    try {
+      setIsSaving(true);
+      const payload = {
+        siteName: profile.name,
+        email: profile.email,
+        logo: branding.logo,
+        primaryColor: branding.primaryColor,
+        secondaryColor: branding.secondaryColor,
+        metaTitle: seo.metaTitle,
+        metaDescription: seo.metaDescription,
+        currency: preferences.currency,
+        timezone: preferences.timezone
+      };
+      await settingsService.updateSettings(payload);
+      toast.success(`${section} updated successfully`);
+    } catch (error) {
+      toast.error(`Failed to update ${section}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/auth/login');
+  };
 
   const handleAddUser = async () => {
     if (!newUser.name || !newUser.email) {
@@ -160,10 +232,21 @@ export default function SettingsPage() {
 
   return (
     <div className="animate-fade-in space-y-8 pb-20">
-      <PageHeader 
-        title="Settings" 
-        description="Global system configuration and personal account preferences." 
-      />
+      <div className="flex justify-between items-start">
+        <PageHeader 
+          title="Settings" 
+          description="Global system configuration and personal account preferences." 
+        />
+        <Button variant="outline" className="text-destructive border-destructive/20 hover:bg-destructive/10 rounded-xl font-bold mt-2" onClick={handleLogout}>
+          <Lock className="w-4 h-4 mr-2" /> Logout
+        </Button>
+      </div>
+
+      {isLoadingSettings && (
+        <div className="flex items-center justify-center p-8">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      )}
 
       <Tabs defaultValue="profile" className="space-y-6">
         <div className="flex overflow-x-auto pb-2 -mx-2 px-2 scrollbar-none">
@@ -251,7 +334,8 @@ export default function SettingsPage() {
                   <Input value={profile.phone} onChange={e => setProfile({...profile, phone: e.target.value})} className="rounded-xl" />
                 </div>
               </div>
-              <Button className="gradient-primary px-8 rounded-xl font-bold" onClick={() => toast.success("Profile updated")}>
+              <Button disabled={isSaving} className="gradient-primary px-8 rounded-xl font-bold" onClick={() => handleSaveSettings("Profile")}>
+                {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                 Save Changes
               </Button>
             </CardContent>
@@ -384,7 +468,8 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <Button className="gradient-primary px-8 rounded-xl font-bold" onClick={() => toast.success("Branding updated")}>
+              <Button disabled={isSaving} className="gradient-primary px-8 rounded-xl font-bold" onClick={() => handleSaveSettings("Branding")}>
+                {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                 Save Branding
               </Button>
             </CardContent>
@@ -444,7 +529,8 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
-              <Button className="gradient-primary px-8 rounded-xl font-bold" onClick={() => toast.success("SEO settings saved")}>
+              <Button disabled={isSaving} className="gradient-primary px-8 rounded-xl font-bold" onClick={() => handleSaveSettings("SEO")}>
+                {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                 Update SEO
               </Button>
             </CardContent>
@@ -644,7 +730,8 @@ export default function SettingsPage() {
                   </select>
                 </div>
               </div>
-              <Button className="gradient-primary px-8 rounded-xl font-bold" onClick={() => toast.success("Preferences updated")}>
+              <Button disabled={isSaving} className="gradient-primary px-8 rounded-xl font-bold" onClick={() => handleSaveSettings("Preferences")}>
+                {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                 Save Settings
               </Button>
             </CardContent>

@@ -111,7 +111,7 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-10 text-center">
-            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">© 2024 Viralstan | All rights reserved.</p>
+            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">© 2026 Viralstan | All rights reserved.</p>
           </div>
         </div>
       </div>
