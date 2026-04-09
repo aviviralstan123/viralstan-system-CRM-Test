@@ -46,7 +46,7 @@ export default function LoginPage() {
           <div className="flex flex-col items-center mb-10">
             <div className="h-20 w-20 rounded-3xl gradient-primary flex items-center justify-center shadow-xl shadow-primary/20 mb-6 group hover:scale-105 transition-transform duration-500">
                 <div className="h-full w-full flex items-center justify-center">
-                    <img src="/logo-viralstan.svg" alt="Viralstan" className="h-10 animate-fade-in" onError={(e) => {
+                    <img src="/logo.svg" alt="Viralstan" className="h-10 animate-fade-in" onError={(e) => {
                         (e.target as any).style.display = 'none';
                         (e.target as any).nextElementSibling.style.display = 'block';
                     }} />
