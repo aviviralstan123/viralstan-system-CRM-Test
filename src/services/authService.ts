@@ -37,3 +37,13 @@ export const getUserInfo = () => {
   const info = localStorage.getItem('user_info');
   return info ? JSON.parse(info) : null;
 };
+
+export const forgotPassword = async (email: string): Promise<{ message: string }> => {
+  const response = await apiClient.post('/auth/forgot-password', { email });
+  return response.data;
+};
+
+export const resetPassword = async (data: any): Promise<{ message: string }> => {
+  const response = await apiClient.post('/auth/reset-password', data);
+  return response.data;
+};

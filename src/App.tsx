@@ -10,6 +10,8 @@ import * as authService from "@/services/authService";
 
 // Lazy load modules
 const LoginPage = lazy(() => import("@/modules/auth/pages/LoginPage"));
+const ForgotPasswordPage = lazy(() => import("@/modules/auth/pages/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("@/modules/auth/pages/ResetPasswordPage"));
 const DashboardPage = lazy(() => import("@/modules/dashboard/pages/DashboardPage"));
 const ClientsList = lazy(() => import("@/modules/clients/pages/ClientsList"));
 const LeadsList = lazy(() => import("@/modules/leads/pages/LeadsList"));
@@ -45,6 +47,8 @@ const App = () => (
           <Routes>
             {/* Auth Routes */}
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             
             <Route 
               path="/" 
