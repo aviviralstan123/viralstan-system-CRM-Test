@@ -17,13 +17,49 @@ export const blogService = {
     return response.data.data;
   },
   
-  create: async (blog: Partial<Blog>) => {
-    const response = await apiClient.post('/blogs', blog);
+  create: async (blogData: Partial<Blog> | any) => {
+    let payload = blogData;
+    let config = {};
+    if (blogData.coverFile) {
+      const formData = new FormData();
+      Object.keys(blogData).forEach(key => {
+        if (key === 'coverFile') {
+          formData.append('featured_image', blogData.coverFile);
+        } else if (key === 'coverImage' || key === 'featured_image') {
+          if (typeof blogData[key] === 'string' && !blogData[key].startsWith('blob:')) {
+            formData.append(key, blogData[key]);
+          }
+        } else if (blogData[key] !== undefined && blogData[key] !== null) {
+          formData.append(key, blogData[key]);
+        }
+      });
+      payload = formData;
+      config = { headers: { 'Content-Type': 'multipart/form-data' } };
+    }
+    const response = await apiClient.post('/blogs', payload, config);
     return response.data.data;
   },
   
-  update: async (id: string, blog: Partial<Blog>) => {
-    const response = await apiClient.put(`/blogs/${id}`, blog);
+  update: async (id: string, blogData: Partial<Blog> | any) => {
+    let payload = blogData;
+    let config = {};
+    if (blogData.coverFile) {
+      const formData = new FormData();
+      Object.keys(blogData).forEach(key => {
+        if (key === 'coverFile') {
+          formData.append('featured_image', blogData.coverFile);
+        } else if (key === 'coverImage' || key === 'featured_image') {
+          if (typeof blogData[key] === 'string' && !blogData[key].startsWith('blob:')) {
+            formData.append(key, blogData[key]);
+          }
+        } else if (blogData[key] !== undefined && blogData[key] !== null) {
+          formData.append(key, blogData[key]);
+        }
+      });
+      payload = formData;
+      config = { headers: { 'Content-Type': 'multipart/form-data' } };
+    }
+    const response = await apiClient.put(`/blogs/${id}`, payload, config);
     return response.data.data;
   },
   

@@ -31,6 +31,7 @@ export default function CreateBlog() {
   });
 
   const [coverPreview, setCoverPreview] = useState<string>("");
+  const [coverFile, setCoverFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (form.title) {
@@ -50,6 +51,7 @@ export default function CreateBlog() {
     }
     const url = URL.createObjectURL(file);
     setCoverPreview(url);
+    setCoverFile(file);
     setForm({ ...form, coverImage: url });
   };
 
@@ -64,6 +66,7 @@ export default function CreateBlog() {
       await addBlog({
         ...form,
         wordCount,
+        coverFile,
       });
       toast.success("Blog post created successfully");
       navigate("/blogs");

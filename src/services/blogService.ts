@@ -22,6 +22,7 @@ export interface Blog {
   published_at?: string;
   publishedAt?: string; // alias
   created_at: string;
+  coverFile?: any;
 }
 
 export const getAllBlogs = async () => {

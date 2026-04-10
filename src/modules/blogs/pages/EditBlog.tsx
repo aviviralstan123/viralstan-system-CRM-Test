@@ -57,6 +57,7 @@ export default function EditBlog() {
   }, [id, getBlogById, navigate]);
 
   const [coverPreview, setCoverPreview] = useState<string>("");
+  const [coverFile, setCoverFile] = useState<File | null>(null);
 
   if (!blog) return <div className="flex items-center justify-center min-h-[400px]">Loading...</div>;
 
@@ -72,6 +73,7 @@ export default function EditBlog() {
     }
     const url = URL.createObjectURL(file);
     setCoverPreview(url);
+    setCoverFile(file);
     setBlog({ ...blog, coverImage: url });
   };
 
@@ -86,6 +88,7 @@ export default function EditBlog() {
       await updateBlog(id!, {
         ...blog,
         wordCount,
+        coverFile,
       });
       toast.success("Blog post updated successfully");
       navigate("/blogs");
