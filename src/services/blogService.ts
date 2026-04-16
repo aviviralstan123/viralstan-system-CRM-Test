@@ -26,7 +26,7 @@ export interface Blog {
 }
 
 export const getAllBlogs = async () => {
-  const response = await apiClient.get('/blogs');
+  const response = await apiClient.get('/blogs/admin/all');
   return response.data;
 };
 

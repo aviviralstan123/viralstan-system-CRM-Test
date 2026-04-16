@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useBlogStore } from "../blogStore";
+import { blogService } from "../blogService";
 import { calculateWordCount, calculateReadingTime } from "../blogUtils";
 import { RichTextEditor } from "../components/RichTextEditor";
 import { ArrowLeft, Save, Upload, X, Loader2 } from "lucide-react";

@@ -3,12 +3,12 @@ import { Blog } from '@/services/blogService';
 
 export const blogService = {
   getAll: async () => {
-    const response = await apiClient.get('/blogs');
+    const response = await apiClient.get('/blogs/admin/all');
     return response.data.data;
   },
   
   getById: async (id: string) => {
-    const response = await apiClient.get(`/blogs/${id}`);
+    const response = await apiClient.get(`/blogs/admin/id/${id}`);
     return response.data.data;
   },
 

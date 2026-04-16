@@ -12,7 +12,7 @@ export interface Service {
 }
 
 export const getAllServices = async () => {
-  const response = await apiClient.get('/services');
+  const response = await apiClient.get('/services/admin/all');
   return response.data;
 };
 
