@@ -163,9 +163,9 @@ export default function LeadsList() {
                 <option value="new">New</option>
                 <option value="contacted">Contacted</option>
                 <option value="qualified">Qualified</option>
-                <option value="proposal">Proposal</option>
-                <option value="won">Won</option>
-                <option value="lost">Lost</option>
+                <option value="proposal">Proposal Sent</option>
+                <option value="won">Converted</option>
+                <option value="lost">Dropped</option>
               </select>
             </div>
             <div>
@@ -223,7 +223,7 @@ export default function LeadsList() {
                     </div>
                   </td>
                   <td className="px-4 py-3"><span className="text-sm">{lead.source}</span></td>
-                  <td className="px-4 py-3"><StatusBadge label={lead.status} variant={getInvoiceStatusVariant(lead.status)} /></td>
+                  <td className="px-4 py-3"><StatusBadge label={lead.status === 'won' ? 'Converted' : lead.status === 'lost' ? 'Dropped' : lead.status === 'proposal' ? 'Proposal Sent' : lead.status} variant={getInvoiceStatusVariant(lead.status)} /></td>
                   <td className="px-4 py-3"><span className="text-sm font-semibold">${(lead.value || 0).toLocaleString()}</span></td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
