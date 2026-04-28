@@ -57,7 +57,7 @@ export default function LeadsList() {
       source: lead.source, 
       status: lead.status, 
       value: lead.value, 
-      createdAt: lead.createdAt 
+      created_at: lead.created_at 
     });
   };
 
@@ -185,6 +185,7 @@ export default function LeadsList() {
           <thead>
             <tr className="border-b border-border bg-muted/30">
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Lead</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:table-cell">Contact</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Source</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Value</th>
@@ -194,7 +195,7 @@ export default function LeadsList() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center">
+                <td colSpan={6} className="px-4 py-8 text-center">
                   <div className="flex items-center justify-center gap-2 text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Loading leads...
@@ -211,6 +212,14 @@ export default function LeadsList() {
                     <div>
                       <p className="text-sm font-medium">{lead.name}</p>
                       <p className="text-xs text-muted-foreground">{lead.company}</p>
+                      {lead.service_interested && <p className="text-xs text-blue-500 mt-0.5">{lead.service_interested}</p>}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 hidden md:table-cell">
+                    <div>
+                      <p className="text-xs text-muted-foreground">{lead.email}</p>
+                      {lead.phone && <p className="text-xs text-muted-foreground">{lead.phone}</p>}
+                      {lead.message && <p className="text-xs text-muted-foreground mt-1 max-w-[200px] truncate" title={lead.message}>{lead.message}</p>}
                     </div>
                   </td>
                   <td className="px-4 py-3"><span className="text-sm">{lead.source}</span></td>
@@ -229,7 +238,7 @@ export default function LeadsList() {
                 </tr>
               ))
             ) : (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">No leads found</td></tr>
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">No leads found</td></tr>
             )}
           </tbody>
         </table>
