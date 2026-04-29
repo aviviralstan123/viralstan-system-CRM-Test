@@ -27,6 +27,7 @@ const ReviewsPage = lazy(() => import("@/modules/reviews/pages/ReviewsList"));
 const AnalyticsPage = lazy(() => import("@/modules/analytics/pages/AnalyticsPage"));
 const SettingsPage = lazy(() => import("@/modules/settings/pages/SettingsPage"));
 const IndustriesPage = lazy(() => import("@/modules/services/pages/IndustriesList"));
+const ORMPackagesPage = lazy(() => import("@/modules/packages/pages/ORMPackagesPage"));
 const NotFound = lazy(() => import("@/modules/dashboard/pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -71,6 +72,11 @@ const App = () => (
               {/* Services Module */}
               <Route path="services" element={<ServicesList />} />
               <Route path="industries" element={<IndustriesPage />} />
+              
+              {/* Packages Module */}
+              <Route path="packages">
+                <Route path="orm" element={<ORMPackagesPage />} />
+              </Route>
               
               {/* Blogs Module */}
               <Route path="blogs">

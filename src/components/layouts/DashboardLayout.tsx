@@ -17,6 +17,8 @@ import {
   Search,
   Bell,
   Menu,
+  Package,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -32,6 +34,22 @@ const navItems = [
   { label: "Clients", icon: Users, path: "/clients" },
   { label: "Leads", icon: Target, path: "/leads" },
   { label: "Services", icon: Briefcase, path: "/services" },
+  { 
+    label: "Packages", 
+    icon: Package, 
+    path: "/packages",
+    subItems: [
+      { label: "SEO Packages", path: "/packages/seo" },
+      { label: "SMO Packages", path: "/packages/smo" },
+      { label: "SMM Packages", path: "/packages/sMM" },
+      { label: "ORM Packages", path: "/packages/orm" },
+      { label: "PPC Packages", path: "/packages/ppc" },
+      { label: "PR & Guest Posting", path: "/packages/pr" },
+      { label: "CGI Packages", path: "/packages/cgi" },
+      { label: "Editing Packages", path: "/packages/editing" },
+      { label: "Website Maintenance", path: "/packages/maintenance" },
+    ]
+  },
   { label: "Industries", icon: Building2, path: "/industries" },
   { label: "Blogs", icon: FileText, path: "/blogs" },
   { label: "Reviews", icon: Star, path: "/reviews" },
@@ -101,7 +119,16 @@ const LogoIcon = () => (
 export default function DashboardLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({
+    "/packages": true // Default expand Packages
+  });
   const location = useLocation();
+
+  const toggleSubMenu = (path: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setExpandedMenus(prev => ({ ...prev, [path]: !prev[path] }));
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -150,22 +177,70 @@ export default function DashboardLayout() {
               ? location.pathname === "/"
               : location.pathname.startsWith(item.path);
 
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 relative group",
-                  isActive
-                    ? "bg-primary/10 text-primary shadow-[inset_0_0_0_1px_rgba(var(--primary),0.1)] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1.5 before:bg-primary before:rounded-r-full"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground hover:translate-x-1"
-                )}
-              >
-                <item.icon className={cn("h-5 w-5 shrink-0 transition-colors duration-200", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
-                {!collapsed && <span>{item.label}</span>}
-              </Link>
-            );
+              const hasSubItems = item.subItems && item.subItems.length > 0;
+              const isExpanded = expandedMenus[item.path];
+
+              return (
+                <div key={item.path} className="flex flex-col">
+                  {hasSubItems ? (
+                    <div
+                      onClick={(e) => toggleSubMenu(item.path, e)}
+                      className={cn(
+                        "flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 relative group cursor-pointer",
+                        isActive || isExpanded
+                          ? "bg-primary/5 text-primary"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      )}
+                    >
+                      <item.icon className={cn("h-5 w-5 shrink-0 transition-colors duration-200", isActive || isExpanded ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
+                      {!collapsed && (
+                        <>
+                          <span className="flex-1 text-left">{item.label}</span>
+                          <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isExpanded && "rotate-180")} />
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <Link
+                      to={item.path}
+                      onClick={() => setMobileOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 relative group",
+                        isActive
+                          ? "bg-primary/10 text-primary shadow-[inset_0_0_0_1px_rgba(var(--primary),0.1)] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1.5 before:bg-primary before:rounded-r-full"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground hover:translate-x-1"
+                      )}
+                    >
+                      <item.icon className={cn("h-5 w-5 shrink-0 transition-colors duration-200", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
+                      {!collapsed && <span>{item.label}</span>}
+                    </Link>
+                  )}
+
+                  {/* SubItems Render */}
+                  {hasSubItems && isExpanded && !collapsed && (
+                    <div className="flex flex-col mt-1 ml-4 border-l border-border pl-2 space-y-1">
+                      {item.subItems!.map((sub) => {
+                        const isSubActive = location.pathname === sub.path;
+                        return (
+                          <Link
+                            key={sub.path}
+                            to={sub.path}
+                            onClick={() => setMobileOpen(false)}
+                            className={cn(
+                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-200 relative",
+                              isSubActive
+                                ? "text-primary font-bold before:absolute before:-left-[9px] before:top-1/2 before:-translate-y-1/2 before:w-1.5 before:h-1.5 before:rounded-full before:bg-primary"
+                                : "text-muted-foreground font-medium hover:text-foreground hover:bg-muted/50"
+                            )}
+                          >
+                            <span>{sub.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
           })}
         </nav>
 
